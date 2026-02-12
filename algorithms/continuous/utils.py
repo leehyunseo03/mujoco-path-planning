@@ -1,8 +1,6 @@
-# algorithms/continuous/utils.py
 import math
 
 class Node:
-    """모든 RRT 계열 알고리즘에서 사용할 공통 노드"""
     def __init__(self, x, y):
         self.x = x
         self.y = y

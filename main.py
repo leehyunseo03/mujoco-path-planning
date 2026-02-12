@@ -4,6 +4,7 @@ import numpy as np
 import mujoco
 import mujoco.viewer
 from map_manager import MapManager
+from record import MujocoRecorder
 
 from algorithms.discrete.bfs import bfs_step_generator
 from algorithms.discrete.dfs import dfs_step_generator
@@ -50,6 +51,7 @@ def get_algorithm(name, m_map):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('algo', type=str, help='Algorithm name (e.g., bfs, rrt, astar, informed_rrt_star)')
+    parser.add_argument('--record', action='store_true', help='Record to GIF')
     args = parser.parse_args()
 
     temp_mode = 'discrete' if args.algo.lower() in ['bfs', 'dfs', 'a_star'] else 'continuous'
@@ -57,6 +59,10 @@ def main():
     mujoco_map = MapManager(dim=50, mode=temp_mode)
     model, data = mujoco_map.create_mujoco_model()
     mujoco_map.reset_scene()
+
+    recorder = None
+    if args.record:
+        recorder = MujocoRecorder(model, height=480, width=640, fps=20)
 
     mode, algo_gen = get_algorithm(args.algo, mujoco_map)
 
@@ -88,6 +94,8 @@ def main():
         path_nodes = []
         graph_edges = []
         path_found = False
+        frame_skip = 0
+        path_completion_time = None
 
         while viewer.is_running():
             step_start = time.time()
@@ -103,6 +111,7 @@ def main():
                             for (px, py) in payload:
                                 mujoco_map.set_tile_color(px, py, [0, 1, 0, 0.9])
                             path_found = True
+                            path_completion_time = time.time()
 
                     else: 
                         if event_type == "sampling":
@@ -115,11 +124,19 @@ def main():
                         elif event_type == "path":
                             path_nodes = payload
                             path_found = True
+                            path_completion_time = time.time()
                             
                 except StopIteration:
+
+                    path_completion_time = time.time()
                     path_found = True
+                    
             
             else:
+                if args.record and path_completion_time is not None and (time.time() - path_completion_time > 5.0):
+                    print("animation finished")
+                    break
+
                 if mode == 'continuous' and path_nodes:
                     t = (time.time() % 3.0) / 3.0
                     idx = int(t * (len(path_nodes) - 1))
@@ -153,16 +170,21 @@ def main():
                         mujoco.mjv_connector(
                             viewer.user_scn.geoms[viewer.user_scn.ngeom],
                             mujoco.mjtGeom.mjGEOM_LINE,
-                            6.0,  # 선 두께를 더 굵게 (2.0 -> 6.0)
-                            np.array([curr_node[0], curr_node[1], 0.15]), # 높이(z)를 살짝 띄움 (0.1 -> 0.15)
+                            6.0, 
+                            np.array([curr_node[0], curr_node[1], 0.15]),
                             np.array([next_node[0], next_node[1], 0.15])
                         )
-                        # 색상 설정 (R, G, B, A) -> 빨간색 불투명
                         viewer.user_scn.geoms[viewer.user_scn.ngeom].rgba = np.array([1, 0, 0, 1.0])
                         viewer.user_scn.ngeom += 1
 
             viewer.sync()
+            if recorder and frame_skip % 2 == 0:
+                recorder.capture_frame(data, viewer=viewer)
+            frame_skip += 1
+
             time.sleep(max(0, 0.01 - (time.time() - step_start)))
+    if args.record and recorder:
+        recorder.save_gif(f"./assets/{args.algo}.gif")
 
 if __name__ == "__main__":
     main()

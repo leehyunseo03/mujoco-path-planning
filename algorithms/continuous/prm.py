@@ -39,7 +39,6 @@ def a_star_search(start_node, goal_node):
                 
     return None
 
-# --- PRM 메인 제너레이터 ---
 def prm_step_generator(start_pos, goal_pos, map_dim, obstacles, 
                        num_samples=300, connection_radius=15.0, k_neighbors=10):
     
@@ -47,7 +46,6 @@ def prm_step_generator(start_pos, goal_pos, map_dim, obstacles,
     
     nodes = []
     
-    # 1. 시작점/목표점 설정 및 초기화
     start_node = Node(start_pos[0], start_pos[1])
     start_node.id = 0
     start_node.edges = []
@@ -70,7 +68,7 @@ def prm_step_generator(start_pos, goal_pos, map_dim, obstacles,
         if not cc.is_point_colliding(rx, ry):
             new_node = Node(rx, ry)
             new_node.id = len(nodes)
-            new_node.edges = [] # 명시적 초기화
+            new_node.edges = []
             nodes.append(new_node)
             valid_samples += 1
             yield "sampling", (rx, ry)
@@ -104,7 +102,6 @@ def prm_step_generator(start_pos, goal_pos, map_dim, obstacles,
                 n2.edges.append((n1, dist))
                 yield "edge", ((n1.x, n1.y), (n2.x, n2.y))
 
-    # 4. 그래프 탐색 (Query Phase)
     print("🔹 PRM: 로드맵 구축 완료. 최단 경로 탐색 시작...")
     final_path = a_star_search(start_node, goal_node)
     
