@@ -44,7 +44,7 @@ def get_algorithm(name, m_map):
     elif name == 'fmt_star':
         return 'continuous', fmt_star_step_generator(m_map.start, m_map.goal, m_map.dim, m_map.obstacles, num_samples=600)
     elif name == 'prm':
-        return 'continuous', prm_step_generator(m_map.start, m_map.goal, m_map.dim, m_map.obstacles, num_samples=500)
+        return 'continuous', prm_step_generator(m_map.start, m_map.goal, m_map.dim, m_map.obstacles, num_samples=200)
     else:
         raise ValueError(f"Unknown algorithm: {name}")
 
